@@ -1,0 +1,18 @@
+Package: rosetta
+Type: Package
+Title: What the Package Does (one line, Title Case)
+Version: 0.0.9000
+Authors@R: c(
+    person("Brett", "Klamer", email = "Brett.Klamer@osumc.edu", role = c("aut")),
+    person("Chris", "Bartlett", email = "Christopher.Bartlett@NationwideChildrens.org", role = "ctb")
+  )
+
+Description: ROSETTA creates latent traits to concatentat imperfectly matched datsets.
+License: Apache License (== 2.0)
+LazyData: TRUE
+Suggests:
+    testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 5.0.1

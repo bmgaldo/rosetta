@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "# Check if correlation or covariance matrices are positive semi definite\nis_pos_semidef <- function(matrix) {\n  all(eigen(matrix, only.values = TRUE)$values >= 0)\n}\n\n# Converts all factor type variables in dataframe to character type.\nfac2char <- function(data) {\n  factor_index <- sapply(data, is.factor)\n  data[factor_index] <- lapply(data[factor_index], as.character)\n  data\n}\n\n# Returns factor correlation estimates from an sem object.\n#' @importFrom sem stdCoef\nfac_cor_estimates <- function(sem_object) {\n  n_factors <- sem_object$m - sem_object$n\n  coef <- fac2char(stdCoef(sem_object))\n  n_coef <- nrow(stdCoef(sem_object))\n  n_combs <- ncol(combn(n_factors, 2))\n  fac_coef <- coef[(n_coef-n_combs+1):n_coef, 1:2]\n  colnames(fac_coef) <- c(\"covariance\", \"estimate\")\n  rownames(fac_coef) <- NULL\n  fac_coef\n}\n\n# Function to estimate missing values of a correlation matrix\n#' @importFrom DoE.wrapper lhs.design\n#' @importFrom Matrix nearPD\noverall_cor <- function(matrix) {\n  # optim() function to calculate frobenius norm of difference matrix.\n  sm <- function (mat, par) {\n    # Store original covariance matrix and matrix that can be modified\n    mat_par <- mat\n    # Get the missing value locations from the upper triangle\n    mat_par[lower.tri(mat_par)] <- 0\n    index_na <- which(is.na(mat_par), arr.ind = TRUE)\n    # Restore modified matrix and assign values\n    mat_par <- mat\n    for (i in 1:nrow(index_na)) {\n      mat_par[index_na[i,1], index_na[i,2]] <- par[i]\n      mat_par[index_na[i,2], index_na[i,1]] <- par[i]\n    }\n    # Difference between original matrix and nearest positive definite chosen matrix\n    matt_diff <- mat - nearPD(mat_par, corr = TRUE)[[\"mat\"]]\n    # Calculate Frobenius norm of difference matrix\n    frob_norm <- sum(matt_diff^2, na.rm = TRUE)^(1/2)\n    frob_norm\n  }\n\n  # Initial values\n    n_initial <- length(which(is.na(matrix)))/2\n    par <- lhs.design(\n      nruns = n_initial,\n      nfactors = 1,\n      default.levels = c(-1, 1)\n    )\n\n    # Find values which minimize the frobenius norm\n    val <- optim(\n      par = par[[1]],\n      mat = matrix,\n      fn = sm,\n      lower = -1,\n      upper = 1,\n      method = \"L-BFGS-B\"\n    )\n\n    # Put the estimated values back in original matrix\n    mat_optim <- matrix\n    mat_optim[lower.tri(mat_optim)] <- 0\n    index_na <- which(is.na(mat_optim), arr.ind = TRUE)\n    mat_optim <- matrix\n    for (j in 1:nrow(index_na)) {\n      mat_optim[index_na[j,1], index_na[j,2]] <- val[[\"par\"]][j]\n      mat_optim[index_na[j,2], index_na[j,1]] <- val[[\"par\"]][j]\n    }\n    if(!is_pos_semidef(mat_optim)) {\n      message(\"The estimated covariance matrix is not positive semidefinite!\\n\",\n              \"It has been replaced by the nearest positive definite matrix.\")\n      mat_optim <- nearPD(mat_optim, corr = TRUE)$mat\n    }\n  matrix_est <- mat_optim\n  matrix_est\n}\n",
+    "created" : 1465820970931.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3130227024",
+    "id" : "58BC3744",
+    "lastKnownWriteTime" : 1460468943,
+    "last_content_update" : 1460468943,
+    "path" : "~/Dropbox/rosetta/brett/rosetta/R/utils.R",
+    "project_path" : "R/utils.R",
+    "properties" : {
+        "chunk_rendered_width" : "611",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "#' Rosetta\n#'\n#' This function will run a Rosetta analysis based on the sem package.\n#'\n#' @param data_list A list of dataframes that contain a varying number of measured variables in respect to the underlying factor structure.\n#' @param factor_structure A named list for the hypothesized factor structure. Set the factor names as the list names and measured variables as the list elements.\n#' @param S A covariance matrix among observed variables.\n#'\n#' @return Returns factor scores for each observation in the dataframes\n#'\n#' @importFrom dplyr bind_rows\n#' @importFrom sem sem fscores\n#' @export\n#'\n#' @examples\n#' #----------------------------------------------------------------------------\n#' # Rosetta example\n#' #----------------------------------------------------------------------------\n#' rosetta()\n\nrosetta <- function(data_list, factor_list, S = NULL) {\n  # Run unconstrained SEM\n  if (is.null(S)) {\n    # Unlist data into a single dataframe\n    data_bind <- as.data.frame(bind_rows(data_list))\n\n    # Calculate pairwise correlations and estimate correlation matrix if necessary\n    overall_cor_matrix <- cor(data_bind, use = \"pairwise.complete.obs\")\n    if (anyNA(overall_cor_matrix)) {\n      overall_cor_matrix <- overall_cor(overall_cor_matrix)\n    }\n  } else {\n    overall_cor_matrix <- S\n  }\n\n  model <- sem_model(factor_list)\n  overall_sem <- sem(\n    model = model,\n    S = overall_cor_matrix,\n    N = ncol(overall_cor_matrix)\n  )\n\n  # Run constrained SEM for each dataset\n  est_factor_score <- list()\n\n  for (i in 1:length(data_list)) {\n    factor_structure <- lapply(factor_list, function(z) {\n      z[z %in% colnames(data_list[[i]])]\n    })\n    model <- sem_model(factor_structure, overall_sem)\n    sem <- sem(model, data = data_list[[i]])\n    est_factor_score[[i]] <- fscores(sem, data = data_list[[i]])\n  }\n\n  if (!is.null(names(data_list))) {\n    names(est_factor_score) <- names(data_list)\n  }\n\n  # Return factor scores\n  est_factor_score\n}\n",
+    "created" : 1465820997085.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "820648869",
+    "id" : "41162D8F",
+    "lastKnownWriteTime" : 1460992261,
+    "last_content_update" : 1460992261,
+    "path" : "~/Dropbox/rosetta/brett/rosetta/R/rosetta.R",
+    "project_path" : "R/rosetta.R",
+    "properties" : {
+        "chunk_rendered_width" : "650"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

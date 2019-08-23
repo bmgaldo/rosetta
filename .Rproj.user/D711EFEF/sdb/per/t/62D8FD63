@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "#' Factor Scores\n#'\n#' Calculate Factor Scores\n#'\n#' @param model An sem object.\n#'\n#' @return Returns factor scores for each observation in the dataframes\n#'\n#' @importFrom sem specifyModel\n#' @export\n#'\n#' @examples\n#' #----------------------------------------------------------------------------\n#' # Rosetta example\n#' #----------------------------------------------------------------------------\n#' sem_model()\n\nfactor_scores <- function(model) {\n  m <- model$m\n  P <- model$P\n  A <- model$A\n  var.names <- model$var.names\n  observed <- var.names %in% rownames(model$C)\n  if (all(observed)) stop(\"there are no latent variables\")\n  IAinv <- solve(diag(m) - A)\n  Sigma <- IAinv %*% P %*% t(IAinv)\n  B <- solve(Sigma[observed, observed]) %*% Sigma[observed, !observed]\n  rownames(B) <- var.names[observed]\n  colnames(B) <- var.names[!observed]\n  B\n}\n\n#' @export\nfactor_score_reliability <- function(lambda, phi, predictor) {\n  mdiag <- function(x) {\n    diag(diag(x))\n  }\n  inverse <- function(x) {solve(x)}\n\n  if(is(lambda, \"loadings\")) {\n    lambda <- lambda[, ]\n  }\n\n  sigma <- lambda %*% phi %*% t(lambda)\n  sigma <- sigma - mdiag(sigma) + diag(nrow(lambda))\n\n  psi <- mdiag(sigma - lambda %*% phi %*% t(lambda))^0.5\n\n  if(round(min(diag(psi))) < 0) {\n    stop(\"The diagonal of psi contains negative values.\")\n  }\n\n  regress <- inverse(mdiag(phi %*% t(lambda) %*% inverse(sigma) %*% lambda %*% phi))^0.5 %*%\n             mdiag(phi %*% t(lambda) %*% inverse(sigma) %*% lambda %*% phi %*% t(lambda) %*% inverse(sigma) %*% lambda %*% phi) %*%\n    inverse(mdiag(phi %*% t(lambda) %*% inverse(sigma) %*% lambda %*% phi))^0.5\n  diag(regress)\n}\n",
+    "created" : 1465822409191.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3301411690",
+    "id" : "62D8FD63",
+    "lastKnownWriteTime" : 1460989951,
+    "last_content_update" : 1460989951,
+    "path" : "~/Dropbox/rosetta/brett/rosetta/R/factor_scores.R",
+    "project_path" : "R/factor_scores.R",
+    "properties" : {
+        "chunk_rendered_width" : "650",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

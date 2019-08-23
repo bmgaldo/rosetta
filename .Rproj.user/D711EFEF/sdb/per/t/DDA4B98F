@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "---\ntitle: \"strum-sem-summary\"\noutput: html_document\n---\n\n```{r setup, include=FALSE}\nknitr::opts_chunk$set(echo = TRUE)\n```\n\n## Main file locations\n\n```\n# An R package containing functions relevant to sem/strum\n~/Dropbox/rosetta/brett/rosetta\n# An R package containing functions relevant to strum\n~/Dropbox/rosetta/brett/strum2\n# A list of files for exploring strum functions\n~/Dropbox/rosetta/brett/strum2-testing\n# A list of files useful for rosetta\n~/Dropbox/rosetta/brett/rosetta-utils.R\n# An example of filling in missing values in a correlation\n~/Dropbox/rosetta/brett/missing-correlation.R\n```\n\n## rosetta Package\n\nLoad the package in Rstudio by opening the file `rosetta.Rproj` and build it. The main functions are documented (in minimal fashion) and can be explored in the help viewer.\n\n### Functions\n\nTo go from separate data frames containing a mixed number of variables to an estimated polygenic and environmental variance matrix, follow this order:\n\n1. `rosetta_data()`\n2. `cv_individual()`\n3. `cv_overall()`\n4. `cov_estimate()`\n\nFor simple cases `cv_individual()` may be used by itself to get the estimated polygenic and environmental variance matrices.\n\nThe `rosetta()` function does a complete rosetta analysis based on the `sem` package.\n\n### Data\n\nThe following datasets are built in\n\n- `asu_50_50_0`\n- `asu_50_50_25`\n- `asu_50_50_50`\n- `asu_60_50_25`\n- `dat`\n    - A list of 3 dataframes of mixed variables in TEDS structure\n- `df_b`\n    - The complete cases data for both twins from TEDS\n\n## strum2 Package\n\nThe base strum package with two added files, `fit-rosetta.R` and `rosetta.R`. Used to explore strum's calculations.\n\n## strum2-testing Files\n\nFiles used to create relevant functions in the rosetta package by stepping through strum functions with different datasets. There is nothing particularly enlightening in them.\n\n## rosetta-utils.R File\n\nA file containing useful functions for rosetta type procedures. Most of the important ones are duplicated in the rosetta package under `R/utils.R` or with their own exported function file.\n\n## missing-correlation.R File\n\nAn example of using Steves algorithm to fill in missing values of a correlation matrix.\n\n",
+    "created" : 1465826776613.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "285230555",
+    "id" : "DDA4B98F",
+    "lastKnownWriteTime" : 1460997251,
+    "last_content_update" : 1460997251,
+    "path" : "~/Dropbox/rosetta/brett/strum-sem-summary/strum-sem-summary.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "chunk_rendered_width" : "611"
+    },
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
