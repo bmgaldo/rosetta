@@ -1,7 +1,7 @@
 ---
-title: "Rosetta"
-author: "Vignette Author"
-date: "`r Sys.Date()`"
+title: "rosetta"
+author: "Brett Klamer"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -9,50 +9,94 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+`rosetta` allows an analyst to combine datasets that measure the same latent traits when there is only partial overlap of measurements across the constituent datasets.
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+# Simulate data
 
-## Vignette Info
+Consider the case where we have three independent datasets which have measurements on three latent factors. In total, we have three variables per latent factor, however, each dataset only measures two out of three per latent factor.
 
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
-
-## Styles
-
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
-
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
-
-## Figures
-
-The figure sizes have been customised so that you can easily put two images side-by-side. 
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+```{r}
+library(rosetta)
+d_sim <- sim(seed = 100)
+d_missing <- d_sim$missing
+d_complete <- d_sim$complete
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
+The simulated 'complete' data would look like
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
-
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
+```{r}
+lapply(d_complete, head)
 ```
 
-Also a quote using `>`:
+while the simulated 'missing' data (representative of our real life use case) looks like
 
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+```{r}
+lapply(d_missing, head)
+```
+
+# Run rosetta
+
+'rosetta' can now be run so that the latent factors contained within the three independent datasets are summarized into a single dataset of factor scores. This allows simplicity, statistical power, and modeling flexibility of a single joint analysis of the information contained within the original data.
+
+```{r}
+d_rosetta <- rosetta(
+  d = d_missing,
+  factor_structure = list(
+    a = c("a_1", "a_2", "a_3"),
+    b = c("b_1", "b_2", "b_3"),
+    c = c("c_1", "c_2", "c_3")
+  )
+)
+
+# combine rosetta results into a single dataset
+d_rosetta <- as.data.frame(do.call("rbind", d_rosetta))
+
+# check the factor score output
+head(d_rosetta)
+```
+
+# Compare results
+
+We will compare the factor scores from the complete data versus the missing data.
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# get factor scores from complete data
+## bind the complete data
+d_complete <- do.call("rbind", d_complete)
+## create RAM model
+factor_structure <- attributes(d_sim)$factor_structure
+sem_model <- rosetta:::sem_model(factor_structure)
+## observed covariance matrix
+cov_mat <- rosetta:::obs_cov(d_complete)
+## complete sem
+sem_fit <- sem::sem(
+  model = sem_model,
+  S = cov_mat,
+  N = ncol(cov_mat)
+)
+## model results
+complete_fscores <- as.data.frame(sem::fscores(model = sem_fit, data = d_complete))
+
+# Visualize comparison
+## combine data
+d_rosetta <- tidyr::gather(d_rosetta, key = "key", value = "rosetta", a, b, c)
+complete_fscores <- tidyr::gather(complete_fscores, key = "key", value = "complete", a, b, c)
+d_plot <- cbind(d_rosetta, complete_fscores["complete"])
+## plot
+ggplot(d_plot, aes(x = complete, y = rosetta, color = key)) + 
+  geom_point() + 
+  labs(
+    x = "Complete data factor scores",
+    y = "Rosetta factor scores",
+    color = "Factor"
+  )
+## correlation table
+table <- d_plot %>%
+  dplyr::group_by(key) %>%
+  dplyr::summarize(cor = cor(rosetta, complete, method = "pearson"))
+knitr::kable(table, caption = "correlation table")
+```

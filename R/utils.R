@@ -4,81 +4,63 @@ is_pos_semidef <- function(matrix) {
 }
 
 # Converts all factor type variables in dataframe to character type.
-fac2char <- function(data) {
-  factor_index <- sapply(data, is.factor)
-  data[factor_index] <- lapply(data[factor_index], as.character)
-  data
+fac2char <- function(df) {
+  factorIndex <- sapply(df, is.factor)
+  df[factorIndex] <- lapply(df[factorIndex], as.character)
+  df
 }
 
-# Returns factor correlation estimates from an sem object.
-#' @importFrom sem stdCoef
-fac_cor_estimates <- function(sem_object) {
-  n_factors <- sem_object$m - sem_object$n
-  coef <- fac2char(stdCoef(sem_object))
-  n_coef <- nrow(stdCoef(sem_object))
-  n_combs <- ncol(combn(n_factors, 2))
-  fac_coef <- coef[(n_coef-n_combs+1):n_coef, 1:2]
-  colnames(fac_coef) <- c("covariance", "estimate")
-  rownames(fac_coef) <- NULL
-  fac_coef
-}
+# Suppose you have many dataframes which you want to combine into a single dataframe.
+# If there are variables unique to a single dataframe, then there is no way to
+# calculate the pairwise covariance matrix. So, this function takes a list of
+# datframes, determines which variables are shared between at least 2, then
+# returns a single combined dataframe.
+rosetta_bind <- function (x) {
+  ## Find variables that are not shared with any other dataframe and those that
+  ## are shared.
+  col_names <- lapply(x, colnames)
+  remove <- unlist(multi_diff(col_names))
+  stay <- setdiff(unlist(col_names), remove)
 
-# Function to estimate missing values of a correlation matrix
-#' @importFrom DoE.wrapper lhs.design
-#' @importFrom Matrix nearPD
-overall_cor <- function(matrix) {
-  # optim() function to calculate frobenius norm of difference matrix.
-  sm <- function (mat, par) {
-    # Store original covariance matrix and matrix that can be modified
-    mat_par <- mat
-    # Get the missing value locations from the upper triangle
-    mat_par[lower.tri(mat_par)] <- 0
-    index_na <- which(is.na(mat_par), arr.ind = TRUE)
-    # Restore modified matrix and assign values
-    mat_par <- mat
-    for (i in 1:nrow(index_na)) {
-      mat_par[index_na[i,1], index_na[i,2]] <- par[i]
-      mat_par[index_na[i,2], index_na[i,1]] <- par[i]
-    }
-    # Difference between original matrix and nearest positive definite chosen matrix
-    matt_diff <- mat - nearPD(mat_par, corr = TRUE)[["mat"]]
-    # Calculate Frobenius norm of difference matrix
-    frob_norm <- sum(matt_diff^2, na.rm = TRUE)^(1/2)
-    frob_norm
+  ## Remove variables that are not shared with any other dataframe.
+  if (is.null(names(x))) { # If an unnamed list, then assign our own names
+    names(x) <- 1:length(x)
+  }
+  removed_cols <- lapply(
+    names(x),
+    function(z) {x[[z]][, !(names(x[[z]]) %in% remove)]}
+  )
+  names(removed_cols) <- names(x)
+
+  ## Add variables that are shared with other dataframes.
+  for (i in 1:length(removed_cols)) {
+    removed_cols[[i]][, setdiff(stay, colnames(removed_cols[[i]]))] <- NA
   }
 
-  # Initial values
-    n_initial <- length(which(is.na(matrix)))/2
-    par <- lhs.design(
-      nruns = n_initial,
-      nfactors = 1,
-      default.levels = c(-1, 1)
-    )
+  ## Bind dataframes that contain 2 or more shared variables.
+  ret <- do.call("rbind", removed_cols)
+  ret
+}
 
-    # Find values which minimize the frobenius norm
-    val <- optim(
-      par = par[[1]],
-      mat = matrix,
-      fn = sm,
-      lower = -1,
-      upper = 1,
-      method = "L-BFGS-B"
-    )
+# Performs a symmetric (both directions) setdiff() on a list of vectors.
+multi_diff = function(x) {
+  # Vector of all unique elements in x
+  row_names <- sort(unique(unlist(x)))
 
-    # Put the estimated values back in original matrix
-    mat_optim <- matrix
-    mat_optim[lower.tri(mat_optim)] <- 0
-    index_na <- which(is.na(mat_optim), arr.ind = TRUE)
-    mat_optim <- matrix
-    for (j in 1:nrow(index_na)) {
-      mat_optim[index_na[j,1], index_na[j,2]] <- val[["par"]][j]
-      mat_optim[index_na[j,2], index_na[j,1]] <- val[["par"]][j]
-    }
-    if(!is_pos_semidef(mat_optim)) {
-      message("The estimated covariance matrix is not positive semidefinite!\n",
-              "It has been replaced by the nearest positive definite matrix.")
-      mat_optim <- nearPD(mat_optim, corr = TRUE)$mat
-    }
-  matrix_est <- mat_optim
-  matrix_est
+  # Truth map. True if element i is in set j. Will apply matrix ops.
+  map = as.matrix(as.data.frame(lapply(x, function(y){row_names %in% y})))
+  rownames(map) <- row_names
+
+  # Create non-conflicting column values
+  col_vals = 2^seq(0, ncol(map) - 1)
+  map = t(t(map) * col_vals)
+
+  # Find row names that are not used anywhere else
+  diff = lapply(col_vals, function(i) {
+    names(which(rowSums(map) == i))
+  })
+  names(diff) = colnames(map)
+
+  # return list of diffs
+  diff
 }

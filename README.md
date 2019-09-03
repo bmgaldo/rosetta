@@ -1,23 +1,31 @@
-ROSETTA - harmonizing datasets for big data analytics
-====================================================
+# rosetta
 
-## Using latent traits to concatentate imperfectly mathced datasets
-
-### NOTE: THIS PACKAGE IS STILL UNDER DEVELOPMENT
-
-Original code sections by Brett Klamer and Chris Bartlett
-
-## Examples
-
-Examples go here...
+`rosetta` provides a method to combine datasets that measure the same latent traits when there is only partial overlap of measurements across the constituent datasets.
 
 ## Installation
 
-ROSETTA can be installed directly from GitHub.
+```{r}
+devtools::install_github("cwbartlett/rosetta")
+```
 
-install.packages("devtools")
-library(devtools)
-install_github("cwbartlett/Rosetta")
-library("Rosetta")
+## Examples
 
-You should be able to run ROSETTA now.
+```{r}
+library(rosetta)
+
+# simulate data
+d <- sim(seed = 100)
+
+# check feature names
+lapply(d$missing, names)
+
+# run rosetta
+d_rosetta <- rosetta(
+  d = d$missing,
+  factor_structure = list(
+    a = c("a_1", "a_2", "a_3"),
+    b = c("b_1", "b_2", "b_3"),
+    c = c("c_1", "c_2", "c_3")
+  )
+)
+```
